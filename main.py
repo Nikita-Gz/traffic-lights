@@ -1,3 +1,9 @@
+import os
+import random
+
+import numpy as np
+import torch
+
 from simulation import TrafficIntersection
 from rewards import reward_based_on_passed_vehicles
 from evaluation import evaluate_agent
@@ -5,7 +11,22 @@ from agents import TimeBasedAgent
 from plotting import plot_evaluation_stats, plot_car_count_on_directions
 
 
+def set_seed(seed=0):
+    random.seed(seed)  # Python random module.
+    np.random.seed(seed)  # Numpy module.
+    torch.manual_seed(seed)  # PyTorch random number generator.
+    os.environ["PYTHONHASHSEED"] = str(seed)  # Python hash seed.
+
+    # CUDA related settings
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # if you are using multi-GPU.
+    torch.backends.cudnn.deterministic = (
+        True  # Necessary for reproducibility, might slow down training.
+    )
+
+
 if __name__ == "__main__":
+    set_seed(0)
     env = TrafficIntersection(
         arrival_prob=0.2,
     )

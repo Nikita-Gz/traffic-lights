@@ -1,13 +1,7 @@
 from typing import Literal
 
+from agents.traffic_control_agent_base import TrafficControlAgent
 from simulation import TrafficIntersection
-
-
-class TrafficControlAgent:
-    def get_best_action(self, env: TrafficIntersection) -> Literal[0, 1]:
-        raise NotImplementedError
-
-    # Idk what else to add for now
 
 
 class TimeBasedAgent(TrafficControlAgent):

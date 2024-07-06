@@ -12,24 +12,87 @@ class EvaluationStats:
     rewards: list[float] = field(default_factory=list)
     actions: list[int] = field(default_factory=list)
     light_states: list[int] = field(default_factory=list)
-    vehicles_waiting: list[int] = field(default_factory=list)
-    average_wait_times: list[float] = field(default_factory=list)
-    max_wait_times: list[int] = field(default_factory=list)
+
+    # wait_times_per_directions_per_steps[step][direction][vehicle]
+    wait_times_per_directions_per_steps: list[list[list[int]]] = field(
+        default_factory=list
+    )
+
+    def get_wait_times_at_step_at_direction(
+        self, step_i: int, direction_i: int
+    ) -> list[int]:
+        """Returns the wait times for a given step and direction"""
+        return self.wait_times_per_directions_per_steps[step_i][direction_i]
+
+    def get_all_wait_times_at_step(self, step_i: int) -> list[int]:
+        """Returns all wait times at a given step"""
+        return [
+            wait_time
+            for direction_i in range(4)  # 4 directions
+            for wait_time in self.get_wait_times_at_step_at_direction(
+                step_i, direction_i
+            )
+        ]
 
     @property
-    def total_reward(self):
+    def step_count(self) -> int:
+        """Returns the number of steps in the evaluation"""
+        return len(self.rewards)
+
+    @property
+    def vehicles_waiting(self) -> list[int]:
+        """Returns the number of vehicles waiting at each step"""
+        return [
+            len(self.get_all_wait_times_at_step(step_i))
+            for step_i in range(self.step_count)
+        ]
+
+    @property
+    def wait_times(self) -> list[int]:
+        """Returns the total wait time for each step"""
+        wait_timse_in_all_steps = []
+        for step_i in range(self.step_count):
+            wait_timse_in_all_steps.append(sum(self.get_all_wait_times_at_step(step_i)))
+        return wait_timse_in_all_steps
+
+    @property
+    def average_wait_times(self) -> list[int]:
+        """Returns the average wait time for each step"""
+        average_wait_times_in_all_steps = []
+        for step_i in range(self.step_count):
+            wait_times = self.get_all_wait_times_at_step(step_i)
+            average_wait_times_in_all_steps.append(
+                sum(wait_times) / len(wait_times) if wait_times else 0
+            )
+        return average_wait_times_in_all_steps
+
+    @property
+    def max_wait_times(self) -> list[int]:
+        """Returns the max wait time for each step"""
+        max_wait_times_in_all_steps = []
+        for step_i in range(self.step_count):
+            wait_times = self.get_all_wait_times_at_step(step_i)
+            max_wait_times_in_all_steps.append(max(wait_times) if wait_times else 0)
+        return max_wait_times_in_all_steps
+
+    @property
+    def total_reward(self) -> float:
+        """Returns the total sum of the rewards for the evaluation"""
         return sum(self.rewards)
 
     @property
-    def average_reward(self):
+    def average_reward(self) -> float:
+        """Returns the average reward for the evaluation"""
         return self.total_reward / len(self.rewards)
 
     @property
-    def average_wait_time(self):
+    def average_wait_time(self) -> float:
+        """Returns the average wait time for the evaluation"""
         return sum(self.average_wait_times) / len(self.average_wait_times)
 
     @property
-    def max_wait_time(self):
+    def max_wait_time(self) -> int:
+        """Returns the maximum wait time for the evaluation"""
         return max(self.max_wait_times)
 
 
@@ -51,23 +114,7 @@ def evaluate_agent(
         result.rewards.append(reward)
         result.actions.append(action)
         result.light_states.append(env.light_state)
-        result.vehicles_waiting.append(
-            sum(len(q) for q in env.wait_times_in_directions)
+        result.wait_times_per_directions_per_steps.append(
+            [list(wait_times) for wait_times in env.wait_times_per_direction]
         )
-
-        average_wait_time = (
-            env.cumulative_time_waited / env.cumulative_vehicles_passed
-            if env.cumulative_vehicles_passed > 0
-            else 0
-        )
-        result.average_wait_times.append(average_wait_time)
-
-        max_wait_times_per_direction = [
-            max(wait_times) if wait_times else 0
-            for wait_times in step_result.wait_times_in_directions
-        ]
-        max_wait_time = (
-            max(max_wait_times_per_direction) if max_wait_times_per_direction else 0
-        )
-        result.max_wait_times.append(max_wait_time)
     return result

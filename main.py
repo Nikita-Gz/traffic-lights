@@ -2,7 +2,7 @@ from simulation import TrafficIntersection
 from rewards import reward_based_on_avg_wait_time
 from evaluation import evaluate_agent
 from agents import TimeBasedAgent
-from plotting import plot_evaluation_stats
+from plotting import plot_evaluation_stats, plot_car_count_on_directions
 
 
 if __name__ == "__main__":
@@ -15,3 +15,4 @@ if __name__ == "__main__":
         num_steps=1000,
     )
     plot_evaluation_stats(result)
+    plot_car_count_on_directions(result)

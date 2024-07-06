@@ -28,7 +28,7 @@ class TrafficIntersection:
         self.logger = logger
 
         # each item in the queue represents a vehicle and the value represents the time it has waited
-        self.wait_times_in_directions: list[deque[int]] = [
+        self.wait_times_per_direction: list[deque[int]] = [
             deque() for _ in range(4)
         ]  # N, S, E, W
 
@@ -86,8 +86,8 @@ class TrafficIntersection:
             ) or (is_light_green_for_ew and is_current_direction_ew)
 
             if is_light_green_for_this_direction:
-                if self.wait_times_in_directions[direction]:
-                    self.wait_times_in_directions[direction].popleft()
+                if self.wait_times_per_direction[direction]:
+                    self.wait_times_per_direction[direction].popleft()
                     passed_this_step += 1
         self.cumulative_vehicles_passed += passed_this_step
         return passed_this_step
@@ -97,7 +97,7 @@ class TrafficIntersection:
         arrived_this_step = 0
         for direction in range(4):
             if self.random_generator.random() < self.arrival_prob:
-                self.wait_times_in_directions[direction].append(0)
+                self.wait_times_per_direction[direction].append(0)
                 arrived_this_step += 1
         return arrived_this_step
 
@@ -105,15 +105,15 @@ class TrafficIntersection:
         """Update the waiting times of vehicles in the queues, return the total waited time this step"""
         waited_this_step = 0
         for direction in range(4):
-            for car_i in range(len(self.wait_times_in_directions[direction])):
-                self.wait_times_in_directions[direction][car_i] += 1
+            for car_i in range(len(self.wait_times_per_direction[direction])):
+                self.wait_times_per_direction[direction][car_i] += 1
                 waited_this_step += 1
         self.cumulative_time_waited += waited_this_step
         return waited_this_step
 
     @property
     def wait_times_per_each_car_per_direction(self) -> list[list[int]]:
-        return [list(q) for q in self.wait_times_in_directions]
+        return [list(wait_times) for wait_times in self.wait_times_per_direction]
 
     def reset(self) -> None:
         self.__init__(

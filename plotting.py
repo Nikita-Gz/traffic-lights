@@ -46,3 +46,28 @@ def plot_evaluation_stats(stats: EvaluationStats):
 
     plt.tight_layout()
     plt.show()
+
+
+def plot_car_count_on_directions(stats: EvaluationStats):
+    """Plots the number of cars waiting on each direction"""
+    fig, axs = plt.subplots(4, 1, figsize=(10, 20))
+
+    for direction_i in range(4):
+        axs[direction_i].plot(
+            [
+                len(stats.get_wait_times_at_step_at_direction(step_i, direction_i))
+                for step_i in range(stats.step_count)
+            ]
+        )
+        axs[direction_i].set_title(f"Number of cars waiting on direction {direction_i}")
+        axs[direction_i].set_xlabel("Step")
+        axs[direction_i].set_ylabel("Number of cars")
+
+    # also plot vertical lines where the light changes
+    for step_i in range(stats.step_count):
+        if stats.light_states[step_i] != stats.light_states[step_i - 1]:
+            for ax in axs:
+                ax.axvline(x=step_i, color="black", linestyle="--")
+
+    plt.tight_layout()
+    plt.show()

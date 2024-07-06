@@ -51,8 +51,8 @@ class TrafficIntersection:
 
         # Update the state
         self._process_traffic_light(action)
-        passed_this_step = self._process_cars_passing()
         new_vehicles_this_step = self._add_new_vehicles()
+        passed_this_step = self._process_cars_passing()
         waited_this_step = self._update_waiting_times()
         step_result = StepResult(
             step_number=self.step_count,

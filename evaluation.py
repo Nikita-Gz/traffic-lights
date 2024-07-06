@@ -12,6 +12,7 @@ class EvaluationStats:
     rewards: list[float] = field(default_factory=list)
     actions: list[int] = field(default_factory=list)
     light_states: list[int] = field(default_factory=list)
+    passed_vehicles: list[int] = field(default_factory=list)
 
     # wait_times_per_directions_per_steps[step][direction][vehicle]
     wait_times_per_directions_per_steps: list[list[list[int]]] = field(
@@ -114,6 +115,7 @@ def evaluate_agent(
         result.rewards.append(reward)
         result.actions.append(action)
         result.light_states.append(env.light_state)
+        result.passed_vehicles.append(step_result.passed_vehicles)
         result.wait_times_per_directions_per_steps.append(
             [list(wait_times) for wait_times in env.wait_times_per_direction]
         )

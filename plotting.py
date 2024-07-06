@@ -10,6 +10,7 @@ def plot_evaluation_stats(stats: EvaluationStats):
     - Number of vehicles waiting per step
     - Average wait time per step
     - Maximum wait time per step
+    - Number of vehicles passed per step
     """
     fig, axs = plt.subplots(3, 2, figsize=(10, 20))  # Adjust the subplot grid to 3x2
 
@@ -41,8 +42,10 @@ def plot_evaluation_stats(stats: EvaluationStats):
     axs[2, 0].set_xlabel("Step")
     axs[2, 0].set_ylabel("Max wait time")
 
-    # Hide the unused subplot (bottom right)
-    axs[2, 1].axis("off")
+    axs[2, 1].plot(stats.passed_vehicles)
+    axs[2, 1].set_title("Number of vehicles passed per step")
+    axs[2, 1].set_xlabel("Step")
+    axs[2, 1].set_ylabel("Number of vehicles")
 
     plt.tight_layout()
     plt.show()

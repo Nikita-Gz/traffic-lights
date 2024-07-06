@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 import random
 import logging
 from collections import deque
-from typing import Literal, Callable
+from typing import Literal
 
 
 @dataclass

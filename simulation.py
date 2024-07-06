@@ -12,7 +12,7 @@ class StepResult:
     step_number: int
     new_vehicles: int
     passed_vehicles: int
-    waited_time: int
+    additional_time_waited: int
     wait_times_in_directions: list[list[int]] = field(default_factory=list)
 
 
@@ -29,8 +29,9 @@ class TrafficIntersection:
 
         # each item in the queue represents a vehicle and the value represents the time it has waited
         self.wait_times_per_direction: list[deque[int]] = [
-            deque() for _ in range(4)
-        ]  # N, S, E, W
+            deque()
+            for _ in range(4)  # N, S, E, W
+        ]
 
         self.light_state = 0  # 0: N-S Green, 1: E-W Green
 
@@ -58,7 +59,7 @@ class TrafficIntersection:
             step_number=self.step_count,
             new_vehicles=new_vehicles_this_step,
             passed_vehicles=passed_this_step,
-            waited_time=waited_this_step,
+            additional_time_waited=waited_this_step,
             wait_times_in_directions=self.wait_times_per_each_car_per_direction,
         )
 
@@ -76,7 +77,7 @@ class TrafficIntersection:
     def _process_cars_passing(self) -> int:
         """Process the cars based on the current light state, return the number of vehicles passed this step"""
         passed_this_step = 0
-        for direction in range(4):
+        for direction in range(4):  # N, S, E, W
             is_light_green_for_ns = self.light_state == 0
             is_light_green_for_ew = not is_light_green_for_ns
             is_current_direction_ns = direction in [0, 1]
@@ -95,7 +96,7 @@ class TrafficIntersection:
     def _add_new_vehicles(self) -> int:
         """Add new vehicles to the queues, return the number of vehicles arrived this step"""
         arrived_this_step = 0
-        for direction in range(4):
+        for direction in range(4):  # N, S, E, W
             if self.random_generator.random() < self.arrival_prob:
                 self.wait_times_per_direction[direction].append(0)
                 arrived_this_step += 1
@@ -104,7 +105,7 @@ class TrafficIntersection:
     def _update_waiting_times(self) -> int:
         """Update the waiting times of vehicles in the queues, return the total waited time this step"""
         waited_this_step = 0
-        for direction in range(4):
+        for direction in range(4):  # N, S, E, W
             for car_i in range(len(self.wait_times_per_direction[direction])):
                 self.wait_times_per_direction[direction][car_i] += 1
                 waited_this_step += 1

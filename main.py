@@ -51,7 +51,7 @@ def example_with_time_based_agent(
         env=env,
         agent=agent,
         reward_function=reward_function,
-        num_steps=2000,
+        num_steps=500,
     )
     plot_evaluation_stats(result)
     plot_car_count_on_directions(result)
@@ -102,7 +102,7 @@ def example_with_dqn_agent(
         env=env,
         agent=agent,
         reward_function=reward_function,
-        num_steps=2000,
+        num_steps=500,
     )
     plot_evaluation_stats(result)
     plot_car_count_on_directions(result)

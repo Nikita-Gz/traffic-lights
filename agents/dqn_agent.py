@@ -1,3 +1,5 @@
+import os
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -51,7 +53,12 @@ class DQNAgent(TrafficControlAgent):
         self.training_config = training_config
 
         self.model = model_class(model_config)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(
+            "cuda"
+            if torch.cuda.is_available() and os.getenv("USE_CUDA", "0") == "1"
+            else "cpu"
+        )
+        logger.info(f"Using device: {self.device}")
         self.model = self.model.to(self.device)
 
         if training_config is not None:
@@ -106,6 +113,10 @@ class DQNAgent(TrafficControlAgent):
         )
         states, actions, rewards, next_states, dones = zip(*minibatch)
 
+        # Converts list of arrays to one 2d array. This prevents torch from crying about performance.
+        states = np.array(states)  # shape: (batch_size, state_size)
+        next_states = np.array(next_states)  # shape: (batch_size, state_size)
+
         states = torch.FloatTensor(states).to(self.device)
         actions = torch.LongTensor(actions).to(self.device)
         rewards = torch.FloatTensor(rewards).to(self.device)
@@ -145,12 +156,12 @@ class DQNAgent(TrafficControlAgent):
     ) -> list[float]:
         """
         Trains the model for the specified number of episodes.
-        Returns the total rewards for each episode.
+        Returns the average rewards for each episode.
         """
         if self.training_config is None:
             raise ValueError("Training config is not provided.")
 
-        total_rewards = []
+        average_rewards = []
         for episode_i in range(num_episodes):
             env.reset(
                 new_random_seed=episode_i
@@ -158,14 +169,16 @@ class DQNAgent(TrafficControlAgent):
             current_state = env.get_state_representation(
                 self.training_config.states_to_consider
             )
-            total_reward_for_episode = 0
+            average_reward_for_episode = 0
 
             for step_i in range(self.training_config.steps_per_episode):
                 action = self.act(current_state, explore=True)
                 step_result = env.step(action)
 
                 reward = reward_function(step_result)
-                total_reward_for_episode += reward
+                average_reward_for_episode += (
+                    reward / self.training_config.steps_per_episode
+                )
 
                 next_state = env.get_state_representation(
                     self.training_config.states_to_consider
@@ -190,11 +203,11 @@ class DQNAgent(TrafficControlAgent):
                 self.update_target_model()
 
             logger.info(
-                f"Episode {episode_i} - Total reward: {total_reward_for_episode}"
+                f"Episode {episode_i} - Total reward: {average_reward_for_episode} - Epsilon: {self.epsilon}"
             )
-            total_rewards.append(total_reward_for_episode)
+            average_rewards.append(average_reward_for_episode)
 
-        return total_rewards
+        return average_rewards
 
     def update_target_model(self):
         """Updates the target model with the weights of the normal model"""

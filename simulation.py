@@ -16,11 +16,13 @@ class StepResult:
     new_vehicles: int
     passed_vehicles: int
     additional_time_waited: int
+    light_state: int  # 0: N-S Green, 1: E-W Green
     wait_times_in_directions: list[list[int]] = field(default_factory=list)
 
 
 class SimulationStatesEnum(Enum):
     LIGHT_STATE = "light_state"
+    LIGHT_IS_TRANSITIONING = "light_is_transitioning"
     QUEUE_LENGTHS = "queue_lengths"
     AVG_WAIT_TIMES = "avg_wait_times"
 
@@ -30,21 +32,26 @@ class TrafficIntersection:
 
     def __init__(
         self,
-        arrival_prob: float = 0.1,
+        arrival_prob: float,
+        light_switch_duration: int,
         random_seed: int | None = None,
         logger: logging.Logger | None = None,
     ):
         self.arrival_prob = arrival_prob
+        self.light_switch_duration = light_switch_duration
         self.random_seed = random_seed
         self.logger = logger
 
-        # each item in the queue represents a vehicle and the value represents the time it has waited
+        # each item in the queue represents a vehicle, and the value represents the time it has waited
         self._wait_times_per_direction: list[deque[int]] = [
             deque()
             for _ in range(4)  # N, S, E, W
         ]
 
         self.light_state = 0  # 0: N-S Green, 1: E-W Green
+        self.light_transitioning_steps_left = (
+            0  # no cars will pass during this time, and the light will not change
+        )
 
         self.step_count = 0
         self.cumulative_time_waited = 0
@@ -70,6 +77,8 @@ class TrafficIntersection:
             match state_to_include:
                 case SimulationStatesEnum.LIGHT_STATE:
                     state.append(self.light_state)
+                case SimulationStatesEnum.LIGHT_IS_TRANSITIONING:
+                    state.append(self.light_transitioning_steps_left > 0)
                 case SimulationStatesEnum.QUEUE_LENGTHS:
                     state.extend(
                         [len(queue) for queue in self._wait_times_per_direction]
@@ -107,6 +116,7 @@ class TrafficIntersection:
             passed_vehicles=passed_this_step,
             additional_time_waited=waited_this_step,
             wait_times_in_directions=self.wait_times_per_direction,
+            light_state=self.light_state,
         )
 
         self._log(logging.DEBUG, f"Step result: {step_result}")
@@ -116,12 +126,25 @@ class TrafficIntersection:
         return step_result
 
     def _process_traffic_light(self, action: Literal[0, 1]):
-        """If action is 1, switch the traffic light"""
-        if action == 1:
+        """
+        If action is 1, start transitioning the light, unless it is already transitioning.
+        If the light is transitioning, decrement the steps left.
+        """
+        if action == 1 and self.light_transitioning_steps_left == 0:
             self.light_state = 1 - self.light_state
+            self.light_transitioning_steps_left = self.light_switch_duration
+        if self.light_transitioning_steps_left > 0:
+            self.light_transitioning_steps_left -= 1
 
     def _process_cars_passing(self) -> int:
-        """Process the cars based on the current light state, return the number of vehicles passed this step"""
+        """
+        Process the cars based on the current light state, return the number of vehicles passed this step
+        No cars will pass if the light is transitioning
+        """
+
+        if self.light_transitioning_steps_left > 0:
+            return 0
+
         passed_this_step = 0
         for direction in range(4):  # N, S, E, W
             is_light_green_for_ns = self.light_state == 0
@@ -159,12 +182,18 @@ class TrafficIntersection:
         return waited_this_step
 
     def reset(
-        self, new_arrival_prob: float | None = None, new_random_seed: int | None = None
+        self,
+        new_arrival_prob: float | None = None,
+        new_light_switch_duration: int | None = None,
+        new_random_seed: int | None = None,
     ):
         self.__init__(
             arrival_prob=self.arrival_prob
             if new_arrival_prob is None
             else new_arrival_prob,
+            light_switch_duration=self.light_switch_duration
+            if new_light_switch_duration is None
+            else new_light_switch_duration,
             random_seed=self.random_seed
             if new_random_seed is None
             else new_random_seed,

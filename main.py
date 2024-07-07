@@ -4,7 +4,7 @@ import random
 import numpy as np
 import torch
 
-from simulation import TrafficIntersection
+from simulation import TrafficIntersection, SimulationStatesEnum
 from rewards import reward_based_on_passed_vehicles
 from evaluation import evaluate_agent
 from agents import TimeBasedAgent
@@ -35,6 +35,7 @@ if __name__ == "__main__":
         env=env,
         agent=agent,
         reward_function=reward_based_on_passed_vehicles,
+        states_to_consider=list(SimulationStatesEnum),
         num_steps=1000,
     )
     plot_evaluation_stats(result)

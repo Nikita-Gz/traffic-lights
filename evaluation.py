@@ -1,7 +1,7 @@
 from typing import Callable
 from dataclasses import dataclass, field
 
-from simulation import TrafficIntersection, StepResult
+from simulation import TrafficIntersection, StepResult, SimulationStatesEnum
 from agents import TrafficControlAgent
 
 
@@ -14,8 +14,8 @@ class EvaluationStats:
     light_states: list[int] = field(default_factory=list)
     passed_vehicles: list[int] = field(default_factory=list)
 
-    # wait_times_per_directions_per_steps[step][direction][vehicle]
-    wait_times_per_directions_per_steps: list[list[list[int]]] = field(
+    # wait_times_per_direction_per_steps[step][direction][vehicle]
+    wait_times_per_direction_per_steps: list[list[list[int]]] = field(
         default_factory=list
     )
 
@@ -23,7 +23,7 @@ class EvaluationStats:
         self, step_i: int, direction_i: int
     ) -> list[int]:
         """Returns the wait times for a given step and direction"""
-        return self.wait_times_per_directions_per_steps[step_i][direction_i]
+        return self.wait_times_per_direction_per_steps[step_i][direction_i]
 
     def get_all_wait_times_at_step(self, step_i: int) -> list[int]:
         """Returns all wait times at a given step"""
@@ -101,6 +101,7 @@ def evaluate_agent(
     env: TrafficIntersection,
     agent: TrafficControlAgent,
     reward_function: Callable[[StepResult], float],
+    states_to_consider: list[SimulationStatesEnum],
     num_steps: int = 1000,
 ) -> EvaluationStats:
     """
@@ -109,14 +110,12 @@ def evaluate_agent(
     """
     result = EvaluationStats()
     for _ in range(num_steps):
-        action = agent.get_best_action(env)
+        action = agent.get_best_action(env, states_to_consider)
         step_result = env.step(action)
         reward = reward_function(step_result)
         result.rewards.append(reward)
         result.actions.append(action)
         result.light_states.append(env.light_state)
         result.passed_vehicles.append(step_result.passed_vehicles)
-        result.wait_times_per_directions_per_steps.append(
-            [list(wait_times) for wait_times in env.wait_times_per_direction]
-        )
+        result.wait_times_per_direction_per_steps.append(env.wait_times_per_direction)
     return result

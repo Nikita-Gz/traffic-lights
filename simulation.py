@@ -3,6 +3,9 @@ import random
 import logging
 from collections import deque
 from typing import Literal
+from enum import Enum
+
+import numpy as np
 
 
 @dataclass
@@ -16,7 +19,15 @@ class StepResult:
     wait_times_in_directions: list[list[int]] = field(default_factory=list)
 
 
+class SimulationStatesEnum(Enum):
+    LIGHT_STATE = "light_state"
+    QUEUE_LENGTHS = "queue_lengths"
+    AVG_WAIT_TIMES = "avg_wait_times"
+
+
 class TrafficIntersection:
+    action_size = 2  # 0: Do nothing, 1: Switch the traffic light
+
     def __init__(
         self,
         arrival_prob: float = 0.1,
@@ -28,7 +39,7 @@ class TrafficIntersection:
         self.logger = logger
 
         # each item in the queue represents a vehicle and the value represents the time it has waited
-        self.wait_times_per_direction: list[deque[int]] = [
+        self._wait_times_per_direction: list[deque[int]] = [
             deque()
             for _ in range(4)  # N, S, E, W
         ]
@@ -41,9 +52,44 @@ class TrafficIntersection:
 
         self.random_generator = random.Random(self.random_seed)
 
+    @property
+    def wait_times_per_direction(self) -> list[list[int]]:
+        """Returns the wait times of vehicles in each direction, but not as deques"""
+        return [list(wait_times) for wait_times in self._wait_times_per_direction]
+
     def _log(self, level: int, message: str):
         if self.logger is not None:
             self.logger.log(level, message)
+
+    def get_state_representation(
+        self, states_to_include: list[SimulationStatesEnum]
+    ) -> np.ndarray:
+        """Return the state representation based on the states to include"""
+        state = []
+        for state_to_include in states_to_include:
+            match state_to_include:
+                case SimulationStatesEnum.LIGHT_STATE:
+                    state.append(self.light_state)
+                case SimulationStatesEnum.QUEUE_LENGTHS:
+                    state.extend(
+                        [len(queue) for queue in self._wait_times_per_direction]
+                    )
+                case SimulationStatesEnum.AVG_WAIT_TIMES:
+                    state.extend(
+                        [
+                            sum(queue) / len(queue) if queue else 0
+                            for queue in self._wait_times_per_direction
+                        ]
+                    )
+                case _:
+                    raise ValueError(f"Unknown state: {state_to_include}")
+        return np.array(state)
+
+    def get_state_representation_length(
+        self, states_to_include: list[SimulationStatesEnum]
+    ) -> int:
+        """Return the length of the state representation based on the states to include"""
+        return len(self.get_state_representation(states_to_include))
 
     def step(self, action: Literal[0, 1]) -> StepResult:
         """Take a step in the environment, update the state and return the reward"""
@@ -60,7 +106,7 @@ class TrafficIntersection:
             new_vehicles=new_vehicles_this_step,
             passed_vehicles=passed_this_step,
             additional_time_waited=waited_this_step,
-            wait_times_in_directions=self.wait_times_per_each_car_per_direction,
+            wait_times_in_directions=self.wait_times_per_direction,
         )
 
         self._log(logging.DEBUG, f"Step result: {step_result}")
@@ -87,8 +133,8 @@ class TrafficIntersection:
             ) or (is_light_green_for_ew and is_current_direction_ew)
 
             if is_light_green_for_this_direction:
-                if self.wait_times_per_direction[direction]:
-                    self.wait_times_per_direction[direction].popleft()
+                if self._wait_times_per_direction[direction]:
+                    self._wait_times_per_direction[direction].popleft()
                     passed_this_step += 1
         self.cumulative_vehicles_passed += passed_this_step
         return passed_this_step
@@ -98,7 +144,7 @@ class TrafficIntersection:
         arrived_this_step = 0
         for direction in range(4):  # N, S, E, W
             if self.random_generator.random() < self.arrival_prob:
-                self.wait_times_per_direction[direction].append(0)
+                self._wait_times_per_direction[direction].append(0)
                 arrived_this_step += 1
         return arrived_this_step
 
@@ -106,19 +152,21 @@ class TrafficIntersection:
         """Update the waiting times of vehicles in the queues, return the total waited time this step"""
         waited_this_step = 0
         for direction in range(4):  # N, S, E, W
-            for car_i in range(len(self.wait_times_per_direction[direction])):
-                self.wait_times_per_direction[direction][car_i] += 1
+            for car_i in range(len(self._wait_times_per_direction[direction])):
+                self._wait_times_per_direction[direction][car_i] += 1
                 waited_this_step += 1
         self.cumulative_time_waited += waited_this_step
         return waited_this_step
 
-    @property
-    def wait_times_per_each_car_per_direction(self) -> list[list[int]]:
-        return [list(wait_times) for wait_times in self.wait_times_per_direction]
-
-    def reset(self) -> None:
+    def reset(
+        self, new_arrival_prob: float | None = None, new_random_seed: int | None = None
+    ):
         self.__init__(
-            arrival_prob=self.arrival_prob,
-            random_seed=self.random_seed,
+            arrival_prob=self.arrival_prob
+            if new_arrival_prob is None
+            else new_arrival_prob,
+            random_seed=self.random_seed
+            if new_random_seed is None
+            else new_random_seed,
             logger=self.logger,
         )

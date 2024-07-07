@@ -16,6 +16,8 @@ class SimpleDQNConfig:
 class SimpleDQN(nn.Module, QNetwork):
     def __init__(self, config: SimpleDQNConfig):
         super(SimpleDQN, self).__init__()
+
+        self.config = config
         self.layers = nn.ModuleList()
 
         self.layers.append(nn.Linear(config.state_size, config.hidden_size))

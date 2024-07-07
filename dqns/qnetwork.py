@@ -1,8 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Mapping
+from typing import Mapping, Iterator
 
 
 class QNetwork(ABC):
+    @abstractmethod
+    def __init__(self, config):
+        pass
+
     @abstractmethod
     def forward(self, state):
         pass
@@ -25,4 +29,8 @@ class QNetwork(ABC):
 
     @abstractmethod
     def load_state_dict(self, state_dict: Mapping):
+        pass
+
+    @abstractmethod
+    def parameters(self) -> Iterator:
         pass

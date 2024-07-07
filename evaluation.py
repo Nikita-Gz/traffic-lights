@@ -101,7 +101,6 @@ def evaluate_agent(
     env: TrafficIntersection,
     agent: TrafficControlAgent,
     reward_function: Callable[[StepResult], float],
-    states_to_consider: list[SimulationStatesEnum],
     num_steps: int = 1000,
 ) -> EvaluationStats:
     """
@@ -110,7 +109,7 @@ def evaluate_agent(
     """
     result = EvaluationStats()
     for _ in range(num_steps):
-        action = agent.get_best_action(env, states_to_consider)
+        action = agent.get_best_action(env)
         step_result = env.step(action)
         reward = reward_function(step_result)
         result.rewards.append(reward)

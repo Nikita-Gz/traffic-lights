@@ -74,3 +74,12 @@ def plot_car_count_on_directions(stats: EvaluationStats):
 
     plt.tight_layout()
     plt.show()
+
+
+def plot_rewards_per_episode(rewards: list[float]):
+    """Plots the rewards per episode"""
+    plt.plot(rewards)
+    plt.title("Rewards per episode")
+    plt.xlabel("Episode")
+    plt.ylabel("Reward")
+    plt.show()

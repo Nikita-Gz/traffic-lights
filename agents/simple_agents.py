@@ -11,9 +11,7 @@ class TimeBasedAgent(TrafficControlAgent):
         self.light_duration = light_duration
         self.steps_since_last_light_change = 0
 
-    def get_best_action(
-        self, env: TrafficIntersection, states_to_consider: list[SimulationStatesEnum]
-    ) -> Literal[0, 1]:
+    def get_best_action(self, env: TrafficIntersection) -> Literal[0, 1]:
         self.steps_since_last_light_change += 1
         if self.steps_since_last_light_change >= self.light_duration:
             self.steps_since_last_light_change = 0
@@ -28,7 +26,5 @@ class DoNothingAgent(TrafficControlAgent):
     Drivers on the green light will be very happy
     """
 
-    def get_best_action(
-        self, env: TrafficIntersection, states_to_consider: list[SimulationStatesEnum]
-    ) -> Literal[0, 1]:
+    def get_best_action(self, env: TrafficIntersection) -> Literal[0, 1]:
         return 0

@@ -31,7 +31,7 @@ class TrafficIntersection:
     def __init__(
         self,
         arrival_prob: float = 0.1,
-        random_seed: int = 0,
+        random_seed: int | None = None,
         logger: logging.Logger | None = None,
     ):
         self.arrival_prob = arrival_prob
